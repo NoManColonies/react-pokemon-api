@@ -1,24 +1,78 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useCallback, useEffect } from "react";
+import FetchAction from "./components/FetchAction";
+import Response from "./interfaces/IAPIResponse";
+import IAPIResult from "./interfaces/IAPIResult";
+import IState from "./interfaces/IState";
 
-function App() {
+const API_ENDPOINT: String = "https://pokeapi.co/api/v2/pokemon";
+
+function App(): JSX.Element {
+  const [fetchedData, setFetchedData]: IState<[]> = useState([]);
+  const [isLoading, setIsLoading]: IState<boolean | undefined> = useState();
+  const [nextSection, setNextSection]: IState<string | undefined> = useState();
+  const [prevSection, setPrevSection]: IState<string | undefined> = useState();
+
+  const handleAPICall = useCallback(async (section: string): Promise<
+    Response
+  > => {
+    return fetch(`${API_ENDPOINT}${section}`, {
+      method: "get",
+      headers: { "Content-Type": "application/json" },
+    }).then((response: Response): Promise<Response> => response.json());
+  }, []);
+
+  const handleFetchAction = useCallback(
+    async (section: string): Promise<void> => {
+      setIsLoading(true);
+      await handleAPICall(section)
+        .then((response: Response): void => {
+          setFetchedData(response.results ? response.results : []);
+          setPrevSection(
+            response.previous
+              ? `?${response.previous.split("?")[1]}`
+              : undefined
+          );
+          setNextSection(
+            response.next ? `?${response.next.split("?")[1]}` : undefined
+          );
+        })
+        .catch((e: Error): void => console.error(e))
+        .finally((): void => setIsLoading(false));
+    },
+    [handleAPICall]
+  );
+
+  useEffect((): void => {
+    handleFetchAction("/");
+  }, [handleFetchAction]);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      {isLoading && <div>Loading...</div>}
+      {fetchedData && (
+        <div>
+          <h1>Pokedex</h1>
+          {fetchedData.map((result: IAPIResult, index: number) => (
+            <ul key={index}>
+              <li>
+                {index + 1}. {result.name}
+              </li>
+            </ul>
+          ))}
+        </div>
+      )}
+      {prevSection && (
+        <FetchAction
+          onClick={(): Promise<void> => handleFetchAction(prevSection)}
+          children={"Prev"}
+        />
+      )}
+      {nextSection && (
+        <FetchAction
+          onClick={(): Promise<void> => handleFetchAction(nextSection)}
+          children={"Next"}
+        />
+      )}
     </div>
   );
 }
