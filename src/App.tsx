@@ -9,8 +9,8 @@ const API_ENDPOINT: String = "https://pokeapi.co/api/v2/pokemon";
 function App(): JSX.Element {
   const [fetchedData, setFetchedData]: IState<[]> = useState([]);
   const [isLoading, setIsLoading]: IState<boolean | undefined> = useState();
-  const [nextSection, setNextSection]: IState<string | undefined> = useState();
-  const [prevSection, setPrevSection]: IState<string | undefined> = useState();
+  const [nextSection, setNextSection]: IState<string> = useState("");
+  const [prevSection, setPrevSection]: IState<string> = useState("");
 
   const handleAPICall = useCallback(async (section: string): Promise<
     Response
@@ -28,12 +28,10 @@ function App(): JSX.Element {
         .then((response: Response): void => {
           setFetchedData(response.results ? response.results : []);
           setPrevSection(
-            response.previous
-              ? `?${response.previous.split("?")[1]}`
-              : undefined
+            response.previous ? `?${response.previous.split("?")[1]}` : ""
           );
           setNextSection(
-            response.next ? `?${response.next.split("?")[1]}` : undefined
+            response.next ? `?${response.next.split("?")[1]}` : ""
           );
         })
         .catch((e: Error): void => console.error(e))
